@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { logEvents } from "./logEvents.js";
 
 const errorHandler = (err, req, res, next) => {
@@ -8,7 +9,7 @@ const errorHandler = (err, req, res, next) => {
   console.log(statusCode, err.stack);
   
   res.status(statusCode).send({
-    status: "error",
+    apiStatus: "error",
     message: err.message,
     stack: process.env.NODE_ENV === "development" ? err.stack : null,
   });
