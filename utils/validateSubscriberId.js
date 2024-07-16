@@ -1,10 +1,17 @@
-// check if subscriberId is not valid (valid format is 94711234567, 94701234567)
-const formatSubscriberId = (subscriberId) => {
-  subscriberId = subscriberId.toString();
+const validateSubscriberId = (subscriberId, res) => {
   let formattedSubscriberId = "";
+  
+  if (!subscriberId) {
+    res.status(400);
+    throw new Error("subscriberId is required");
+  }
+
+  // format subscriberId
+  subscriberId = subscriberId.toString().replace(/\s/g, "");
 
   // check if all are numbers
   if (!/^\d+$/.test(subscriberId)) {
+    res.status(400);
     throw new Error("Invalid subscriberId");
   }
 
@@ -25,10 +32,11 @@ const formatSubscriberId = (subscriberId) => {
 
   // if length is not 11
   if (formattedSubscriberId.length !== 11) {
+    res.status(400);
     throw new Error("Invalid subscriberId");
   }
 
   return `${formattedSubscriberId}`;
 };
 
-export { formatSubscriberId };
+export default validateSubscriberId;
