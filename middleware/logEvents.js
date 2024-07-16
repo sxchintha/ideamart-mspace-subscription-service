@@ -10,18 +10,18 @@ const logEvents = async (message, logName) => {
   const dateTime = `${format(new Date(), "yyyy-MM-dd\tHH:mm:ss")}`;
   const logItem = `${dateTime}\t${uuid()}\t${message}\n`;
 
-  try {
-    if (!fs.existsSync(path.join(__dirname, "..", "logs"))) {
-      await fsPromises.writeFile(path.join(__dirname, "..", "logs"), "");
-    }
+  // try {
+  //   if (!fs.existsSync(path.join(__dirname, "..", "logs"))) {
+  //     await fsPromises.writeFile(path.join(__dirname, "..", "logs"), "");
+  //   }
 
-    await fsPromises.appendFile(
-      path.join(__dirname, "..", "logs", logName),
-      logItem
-    );
-  } catch (error) {
-    console.error(error);
-  }
+  //   await fsPromises.appendFile(
+  //     path.join(__dirname, "..", "logs", logName),
+  //     logItem
+  //   );
+  // } catch (error) {
+  //   console.error(error);
+  // }
 };
 
 const logger = async (req, res, next) => {
