@@ -1,6 +1,10 @@
-const checkStatusCode = (statusCode) => {
-  // if start with S then it is success
-  return !!statusCode?.startsWith("S");
-};
+const checkMobitelStatusCode = (statusCode) => {
+    // if start with S then it is success
+    if (statusCode?.startsWith("S")) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
-export { checkStatusCode };
+export { checkMobitelStatusCode };

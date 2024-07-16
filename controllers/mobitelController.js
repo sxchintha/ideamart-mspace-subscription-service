@@ -1,6 +1,6 @@
 import asyncHandler from "express-async-handler";
 import { formatSubscriberId } from "../utils/formatSubscriberId.js";
-import { checkStatusCode } from "../utils/checkStatusCode.js";
+import { checkMobitelStatusCode } from "../utils/checkStatusCode.js";
 import {
   getStatus,
   subscribeToService,
@@ -17,7 +17,7 @@ const validateSubscriberId = (subscriberId, res) => {
 
 // Utility function to handle API response
 const handleApiResponse = (response, res) => {
-  if (checkStatusCode(response?.data?.statusCode)) {
+  if (checkMobitelStatusCode(response?.data?.statusCode)) {
     res.status(200).send({
       apiStatus: "success",
       ...response.data,
