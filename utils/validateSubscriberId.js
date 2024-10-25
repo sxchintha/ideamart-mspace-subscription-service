@@ -1,6 +1,6 @@
 const validateSubscriberId = (subscriberId, res) => {
   let formattedSubscriberId = "";
-  
+
   if (!subscriberId) {
     res.status(400);
     throw new Error("subscriberId is required");

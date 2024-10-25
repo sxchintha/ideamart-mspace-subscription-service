@@ -1,63 +1,118 @@
 import axios from "axios";
-
-const BASE_URL = "https://api.mspace.lk";
-const GET_SUBSCRIBER_STATUS = "/subscription/getStatus";
-const SUBSCRIBE_TO_SERVICE = "/subscription/send";
-const UNSUBSCRIBE_FROM_SERVICE = "/subscription/send";
-const ACTION = {
-  SUBSCRIBE: "1",
-  UNSUBSCRIBE: "0",
-};
-
-const COMMON_REQUEST_BODY = {
-  applicationId: process.env.MOBITEL_APP_ID,
-  password: process.env.MOBITEL_APP_PASSWORD,
-};
+import {
+  COMMON_REQUEST_BODY,
+  DEFAULT_META_DATA,
+  MOBITEL_API_ENDPOINT,
+  MOBITEL_BASE_URL,
+  SUBSCRIPTION_ACTION,
+} from "../constants";
 
 const API = axios.create({
-  baseURL: BASE_URL,
+  baseURL: MOBITEL_BASE_URL,
   headers: {
     "Content-Type": "application/json;charset=utf-8",
   },
 });
 
-const getStatus = async (subscriberId) => {
+const otpRequestService = async (subscriberId, device, os) => {
   try {
-    const response = await API.post(GET_SUBSCRIBER_STATUS, {
+    const data = {
       ...COMMON_REQUEST_BODY,
       subscriberId: `tel:${subscriberId}`,
-    });
+      applicationMetaData: {
+        ...DEFAULT_META_DATA,
+        device: device || DEFAULT_META_DATA.device,
+        os: os || DEFAULT_META_DATA.os,
+      },
+    };
 
-    return response;
+    return await API.post(MOBITEL_API_ENDPOINT.OTP_REQUEST, data);
   } catch (error) {
     return error.response;
   }
 };
 
-const subscribeToService = async (subscriberId) => {
+const otpVerifyService = async (referenceNo, otp) => {
   try {
-    const response = await API.post(SUBSCRIBE_TO_SERVICE, {
-      subscriberId: `tel:${subscriberId}`,
-      action: ACTION.SUBSCRIBE,
-    });
+    const data = {
+      ...COMMON_REQUEST_BODY,
+      referenceNo,
+      otp,
+    };
 
-    return response;
+    return await API.post(MOBITEL_API_ENDPOINT.OTP_VERIFY, data);
   } catch (error) {
     return error.response;
   }
 };
 
-const unsubscribeFromService = async (subscriberId) => {
+const unsubscribeService = async (subscriberId) => {
   try {
-    const response = await API.post(UNSUBSCRIBE_FROM_SERVICE, {
+    const data = {
+      ...COMMON_REQUEST_BODY,
       subscriberId: `tel:${subscriberId}`,
-      action: ACTION.UNSUBSCRIBE,
-    });
+      action: SUBSCRIPTION_ACTION.UNSUBSCRIBE,
+    };
 
-    return response;
+    return await API.post(MOBITEL_API_ENDPOINT.UNSUBSCRIBE, data);
   } catch (error) {
     return error.response;
   }
 };
 
-export { getStatus, subscribeToService, unsubscribeFromService };
+const getStatusService = async (subscriberId) => {
+  try {
+    const data = {
+      ...COMMON_REQUEST_BODY,
+      subscriberId: `tel:${subscriberId}`,
+    };
+
+    return await API.post(MOBITEL_API_ENDPOINT.GET_STATUS, data);
+  } catch (error) {
+    return error.response;
+  }
+};
+
+const getChargingInfoService = async (subscriberId) => {
+  try {
+    const data = {
+      ...COMMON_REQUEST_BODY,
+      subscriberIds: [`tel:${subscriberId}`],
+    };
+
+    return await API.post(MOBITEL_API_ENDPOINT.GET_CHARGING_INFO, data);
+  } catch (error) {
+    return error.response;
+  }
+};
+
+const anyBodyService = async (body) => {
+  try {
+    const { url, ...rest } = body;
+    console.log("");
+    console.log("=================================");
+    console.log("request", url, rest);
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json;charset=utf-8",
+      },
+      body: JSON.stringify(rest),
+    });
+    const res = await response.json();
+    console.log("response", res);
+    return res;
+  } catch (error) {
+    return error.response;
+  }
+};
+
+export {
+  otpRequestService,
+  otpVerifyService,
+  unsubscribeService,
+  getStatusService,
+  getChargingInfoService,
+  anyBodyService,
+};

@@ -2,52 +2,91 @@ import asyncHandler from "express-async-handler";
 import validateSubscriberId from "../utils/validateSubscriberId.js";
 import handleApiResponse from "../utils/handleApiResponse.js";
 import {
-  getStatus,
-  subscribeToService,
-  unsubscribeFromService,
+  otpRequestService,
+  otpVerifyService,
+  unsubscribeService,
+  getStatusService,
+  getChargingInfoService,
+  anyBodyService,
 } from "../services/mobitelServices.js";
 
-const handleSubscribe = asyncHandler(async (req, res) => {
-  const { subscriberId } = req.body;
+const handleOtpRequest = asyncHandler(async (req, res) => {
+  const { subscriberId, device, os } = req.body;
+
+  if (!subscriberId) {
+    res.status(400);
+    throw new Error("subscriberId is required");
+  }
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
 
-  const status = await getStatus(formattedSubscriberId);
+  const response = await otpRequestService(formattedSubscriberId, device, os);
+  handleApiResponse(response, res);
+});
 
-  if (status?.data?.subscriptionStatus === "REGISTERED") {
-    res
-      .status(200)
-      .send({ apiStatus: "success", message: "User already subscribed" });
-  } else {
-    const response = await subscribeToService(formattedSubscriberId);
-    handleApiResponse(response, res);
+const handleOtpVerify = asyncHandler(async (req, res) => {
+  const { referenceNo, otp } = req.body;
+
+  if (!referenceNo) {
+    res.status(400);
+    throw new Error("referenceNo is required");
+  } else if (!otp) {
+    res.status(400);
+    throw new Error("otp is required");
   }
+
+  const response = await otpVerifyService(referenceNo, otp);
+  handleApiResponse(response, res);
 });
 
 const handleUnsubscribe = asyncHandler(async (req, res) => {
   const { subscriberId } = req.body;
 
-  const formattedSubscriberId = validateSubscriberId(subscriberId, res);
-
-  const status = await getStatus(formattedSubscriberId);
-
-  if (status?.data?.subscriptionStatus === "UNREGISTERED") {
-    res
-      .status(200)
-      .send({ apiStatus: "success", message: "User already unsubscribed" });
-  } else {
-    const response = await unsubscribeFromService(formattedSubscriberId);
-    handleApiResponse(response, res);
+  if (!subscriberId) {
+    res.status(400);
+    throw new Error("subscriberId is required");
   }
-});
 
-const getSubscriberStatus = asyncHandler(async (req, res) => {
-  const { subscriberId } = req.body;
-
-  const formattedSubscriberId = validateSubscriberId(subscriberId, res);
-
-  const response = await getStatus(formattedSubscriberId);
+  const response = await unsubscribeService(subscriberId);
   handleApiResponse(response, res);
 });
 
-export { getSubscriberStatus, handleSubscribe, handleUnsubscribe };
+const handleGetStatus = asyncHandler(async (req, res) => {
+  const { subscriberId } = req.body;
+
+  if (!subscriberId) {
+    res.status(400);
+    throw new Error("subscriberId is required");
+  }
+
+  const response = await getStatusService(subscriberId);
+  handleApiResponse(response, res);
+});
+
+const handleGetChargingInfo = asyncHandler(async (req, res) => {
+  const { subscriberId } = req.body;
+
+  if (!subscriberId) {
+    res.status(400);
+    throw new Error("subscriberId is required");
+  }
+
+  const response = await getChargingInfoService(subscriberId);
+  handleApiResponse(response, res);
+});
+
+const handleAnyBodyRequest = asyncHandler(async (req, res) => {
+  const body = req.body;
+
+  const response = await anyBodyService(body);
+  res.send(response);
+});
+
+export {
+  handleOtpRequest,
+  handleOtpVerify,
+  handleUnsubscribe,
+  handleGetStatus,
+  handleGetChargingInfo,
+  handleAnyBodyRequest,
+};
