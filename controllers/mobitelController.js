@@ -9,6 +9,8 @@ import {
   getChargingInfoService,
   anyBodyService,
 } from "../services/mobitelServices.js";
+import checkStatusCode from "../utils/checkStatusCode.js";
+import { getMaskedId, saveSubscriberId } from "../services/firebaseServices.js";
 
 const handleOtpRequest = asyncHandler(async (req, res) => {
   const { subscriberId, device, os } = req.body;
@@ -25,7 +27,9 @@ const handleOtpRequest = asyncHandler(async (req, res) => {
 });
 
 const handleOtpVerify = asyncHandler(async (req, res) => {
-  const { referenceNo, otp } = req.body;
+  const { subscriberId, referenceNo, otp } = req.body;
+
+  const formattedSubscriberId = validateSubscriberId(subscriberId, res);
 
   if (!referenceNo) {
     res.status(400);
@@ -36,6 +40,19 @@ const handleOtpVerify = asyncHandler(async (req, res) => {
   }
 
   const response = await otpVerifyService(referenceNo, otp);
+
+  if (checkStatusCode(response?.data?.statusCode)) {
+    let attempt = 0;
+    let success = false;
+    while (attempt < 5 && !success) {
+      success = await saveSubscriberId(
+        formattedSubscriberId,
+        response?.data?.subscriberId
+      );
+      attempt++;
+    }
+  }
+
   handleApiResponse(response, res);
 });
 
@@ -47,7 +64,9 @@ const handleUnsubscribe = asyncHandler(async (req, res) => {
     throw new Error("subscriberId is required");
   }
 
-  const response = await unsubscribeService(subscriberId);
+  const maskedId = await getMaskedId(subscriberId);
+
+  const response = await unsubscribeService(maskedId);
   handleApiResponse(response, res);
 });
 
@@ -59,7 +78,9 @@ const handleGetStatus = asyncHandler(async (req, res) => {
     throw new Error("subscriberId is required");
   }
 
-  const response = await getStatusService(subscriberId);
+  const maskedId = await getMaskedId(subscriberId);
+
+  const response = await getStatusService(maskedId);
   handleApiResponse(response, res);
 });
 
@@ -71,7 +92,9 @@ const handleGetChargingInfo = asyncHandler(async (req, res) => {
     throw new Error("subscriberId is required");
   }
 
-  const response = await getChargingInfoService(subscriberId);
+  const maskedId = await getMaskedId(subscriberId);
+
+  const response = await getChargingInfoService(maskedId);
   handleApiResponse(response, res);
 });
 

@@ -1,11 +1,11 @@
 import axios from "axios";
+import { MOBITEL_API_ENDPOINT } from "../constants/apiConstants.js";
 import {
   COMMON_REQUEST_BODY,
   DEFAULT_META_DATA,
-  MOBITEL_API_ENDPOINT,
   MOBITEL_BASE_URL,
   SUBSCRIPTION_ACTION,
-} from "../constants";
+} from "../constants/requestData.js";
 
 const API = axios.create({
   baseURL: MOBITEL_BASE_URL,
@@ -15,6 +15,10 @@ const API = axios.create({
 });
 
 const otpRequestService = async (subscriberId, device, os) => {
+  if (!subscriberId) {
+    throw new Error("subscriberId is required");
+  }
+
   try {
     const data = {
       ...COMMON_REQUEST_BODY,
@@ -33,6 +37,12 @@ const otpRequestService = async (subscriberId, device, os) => {
 };
 
 const otpVerifyService = async (referenceNo, otp) => {
+  if (!referenceNo) {
+    throw new Error("referenceNo is required");
+  } else if (!otp) {
+    throw new Error("otp is required");
+  }
+
   try {
     const data = {
       ...COMMON_REQUEST_BODY,
@@ -47,10 +57,14 @@ const otpVerifyService = async (referenceNo, otp) => {
 };
 
 const unsubscribeService = async (subscriberId) => {
+  if (!subscriberId) {
+    throw new Error("subscriberId is required");
+  }
+
   try {
     const data = {
       ...COMMON_REQUEST_BODY,
-      subscriberId: `tel:${subscriberId}`,
+      subscriberId: `${subscriberId}`,
       action: SUBSCRIPTION_ACTION.UNSUBSCRIBE,
     };
 
@@ -61,10 +75,14 @@ const unsubscribeService = async (subscriberId) => {
 };
 
 const getStatusService = async (subscriberId) => {
+  if (!subscriberId) {
+    throw new Error("subscriberId is required");
+  }
+
   try {
     const data = {
       ...COMMON_REQUEST_BODY,
-      subscriberId: `tel:${subscriberId}`,
+      subscriberId: `${subscriberId}`,
     };
 
     return await API.post(MOBITEL_API_ENDPOINT.GET_STATUS, data);
@@ -74,10 +92,14 @@ const getStatusService = async (subscriberId) => {
 };
 
 const getChargingInfoService = async (subscriberId) => {
+  if (!subscriberId) {
+    throw new Error("subscriberId is required");
+  }
+
   try {
     const data = {
       ...COMMON_REQUEST_BODY,
-      subscriberIds: [`tel:${subscriberId}`],
+      subscriberIds: [`${subscriberId}`],
     };
 
     return await API.post(MOBITEL_API_ENDPOINT.GET_CHARGING_INFO, data);
