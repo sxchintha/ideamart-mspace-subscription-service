@@ -4,7 +4,7 @@ import express from "express";
 import errorHandler from "./middleware/errorHandler.js";
 
 // import routes
-import mobitelRoutes from "./routes/mobitelRoutes.js";
+import subscriptionRoute from "./routes/subscriptionRoute.js";
 
 const PORT = process.env.PORT || 8080;
 
@@ -20,8 +20,8 @@ app.get("/", (req, res) => {
   res.send("Welcome to the API");
 });
 
-// Mobitel Routes
-app.use("/mobitel", mobitelRoutes);
+// Subscription Routes
+app.use("/subscription", subscriptionRoute);
 
 // 404 Error
 app.use((req, res) => {

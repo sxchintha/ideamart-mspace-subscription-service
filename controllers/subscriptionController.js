@@ -7,10 +7,10 @@ import {
   unsubscribeService,
   getStatusService,
   getChargingInfoService,
-  anyBodyService,
-} from "../services/mobitelServices.js";
+} from "../services/subscriptionServices.js";
 import checkStatusCode from "../utils/checkStatusCode.js";
 import { getMaskedId, saveSubscriberId } from "../services/firebaseServices.js";
+import getServiceProvider from "../utils/getServiceProvider.js";
 
 const handleOtpRequest = asyncHandler(async (req, res) => {
   const { subscriberId, device, os } = req.body;
@@ -22,7 +22,12 @@ const handleOtpRequest = asyncHandler(async (req, res) => {
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
 
-  const response = await otpRequestService(formattedSubscriberId, device, os);
+  const response = await otpRequestService(
+    getServiceProvider(formattedSubscriberId),
+    formattedSubscriberId,
+    device,
+    os
+  );
   handleApiResponse(response, res);
 });
 
@@ -39,7 +44,11 @@ const handleOtpVerify = asyncHandler(async (req, res) => {
     throw new Error("otp is required");
   }
 
-  const response = await otpVerifyService(referenceNo, otp);
+  const response = await otpVerifyService(
+    getServiceProvider(formattedSubscriberId),
+    referenceNo,
+    otp
+  );
 
   if (checkStatusCode(response?.data?.statusCode)) {
     let attempt = 0;
@@ -64,9 +73,13 @@ const handleUnsubscribe = asyncHandler(async (req, res) => {
     throw new Error("subscriberId is required");
   }
 
-  const maskedId = await getMaskedId(subscriberId);
+  const formattedSubscriberId = validateSubscriberId(subscriberId, res);
+  const maskedId = await getMaskedId(formattedSubscriberId);
 
-  const response = await unsubscribeService(maskedId);
+  const response = await unsubscribeService(
+    getServiceProvider(formattedSubscriberId),
+    maskedId
+  );
   handleApiResponse(response, res);
 });
 
@@ -78,9 +91,13 @@ const handleGetStatus = asyncHandler(async (req, res) => {
     throw new Error("subscriberId is required");
   }
 
-  const maskedId = await getMaskedId(subscriberId);
+  const formattedSubscriberId = validateSubscriberId(subscriberId, res);
+  const maskedId = await getMaskedId(formattedSubscriberId);
 
-  const response = await getStatusService(maskedId);
+  const response = await getStatusService(
+    getServiceProvider(formattedSubscriberId),
+    maskedId
+  );
   handleApiResponse(response, res);
 });
 
@@ -92,17 +109,14 @@ const handleGetChargingInfo = asyncHandler(async (req, res) => {
     throw new Error("subscriberId is required");
   }
 
-  const maskedId = await getMaskedId(subscriberId);
+  const formattedSubscriberId = validateSubscriberId(subscriberId, res);
+  const maskedId = await getMaskedId(formattedSubscriberId);
 
-  const response = await getChargingInfoService(maskedId);
+  const response = await getChargingInfoService(
+    getServiceProvider(formattedSubscriberId),
+    [maskedId]
+  );
   handleApiResponse(response, res);
-});
-
-const handleAnyBodyRequest = asyncHandler(async (req, res) => {
-  const body = req.body;
-
-  const response = await anyBodyService(body);
-  res.send(response);
 });
 
 export {
@@ -111,5 +125,4 @@ export {
   handleUnsubscribe,
   handleGetStatus,
   handleGetChargingInfo,
-  handleAnyBodyRequest,
 };

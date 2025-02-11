@@ -1,8 +1,3 @@
-export const COMMON_REQUEST_BODY = {
-  applicationId: process.env.MOBITEL_APP_ID,
-  password: process.env.MOBITEL_APP_PASSWORD,
-};
-
 export const DEFAULT_META_DATA = {
   client: "MOBILEAPP",
   device: "NOT_PROVIDED",
@@ -16,3 +11,9 @@ export const SUBSCRIPTION_ACTION = {
 };
 
 export const MOBITEL_BASE_URL = "https://api.mspace.lk";
+export const DIALOG_BASE_URL = "https://api.dialog.lk";
+
+export const SERVICE_PROVIDER = {
+  MOBITEL: "MOBITEL",
+  DIALOG: "DIALOG",
+};

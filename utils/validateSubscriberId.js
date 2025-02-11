@@ -12,7 +12,7 @@ const validateSubscriberId = (subscriberId, res) => {
   // check if all are numbers
   if (!/^\d+$/.test(subscriberId)) {
     res.status(400);
-    throw new Error("Invalid subscriberId");
+    throw new Error("invalid subscriberId");
   }
 
   // if string starts with 94
@@ -33,7 +33,7 @@ const validateSubscriberId = (subscriberId, res) => {
   // if length is not 11
   if (formattedSubscriberId.length !== 11) {
     res.status(400);
-    throw new Error("Invalid subscriberId");
+    throw new Error("invalid subscriberId");
   }
 
   return `${formattedSubscriberId}`;
