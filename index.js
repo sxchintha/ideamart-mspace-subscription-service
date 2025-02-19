@@ -15,6 +15,9 @@ app.use(express.json());
 import { logger } from "./middleware/logEvents.js";
 app.use(logger);
 
+import { verifyUserMiddleware } from "./middleware/verifyUser.js";
+app.use(verifyUserMiddleware);
+
 /****************** Routes ******************/
 app.get("/", (req, res) => {
   res.send("Welcome to the API");
