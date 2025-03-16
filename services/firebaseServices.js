@@ -21,8 +21,8 @@ const verifyFirebaseUser = async (idToken) => {
   }
 };
 
-const saveSubscriberId = async (subscriberId, maskedId) => {
-  console.log("Saving subscriber id", subscriberId, maskedId);
+const saveSubscriberId = async (user, subscriberId, maskedId) => {
+  console.log("Saving subscriber id", user, subscriberId, maskedId);
 
   if (!subscriberId || !maskedId) {
     console.log("Invalid subscriber id or masked id");
@@ -31,6 +31,7 @@ const saveSubscriberId = async (subscriberId, maskedId) => {
 
   try {
     const data = {
+      userId: user.uid,
       subscriberId,
       maskedId,
       createdAt: Timestamp.now(),

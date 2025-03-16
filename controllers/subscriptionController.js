@@ -33,10 +33,14 @@ const handleOtpRequest = asyncHandler(async (req, res) => {
 
 const handleOtpVerify = asyncHandler(async (req, res) => {
   const { subscriberId, referenceNo, otp } = req.body;
+  const { user } = req;
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
 
-  if (!referenceNo) {
+  if (!user) {
+    res.status(401);
+    throw new Error("Unauthorized");
+  } else if (!referenceNo) {
     res.status(400);
     throw new Error("referenceNo is required");
   } else if (!otp) {
@@ -55,6 +59,7 @@ const handleOtpVerify = asyncHandler(async (req, res) => {
     let success = false;
     while (attempt < 5 && !success) {
       success = await saveSubscriberId(
+        user,
         formattedSubscriberId,
         response?.data?.subscriberId
       );

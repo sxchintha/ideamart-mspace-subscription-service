@@ -1,14 +1,28 @@
 import { verifyFirebaseUser } from "../services/firebaseServices.js";
 
-const verifyUserMiddleware = async (req, res, next) => {
-  const { idToken } = req.body;
+/**
+ * Middleware to verify user authentication using Firebase ID token from Authorization header
+ * @param {Object} req - Express request object
+ * @param {Object} req.headers - Request headers
+ * @param {string} req.headers.authorization - Authorization header containing the Firebase ID token
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void}
+ */
 
-  if (!idToken) {
-    res
-      .status(400)
-      .send({ apiStatus: "error", message: "idToken is required" });
+const verifyUserMiddleware = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    res.status(401).send({
+      apiStatus: "error",
+      message: "Authorization header with Bearer token is required",
+    });
     return;
   }
+
+  // Extract the token from "Bearer <token>"
+  const idToken = authHeader.split(" ")[1];
 
   try {
     const decodedToken = await verifyFirebaseUser(idToken);
