@@ -5,6 +5,7 @@ import errorHandler from "./middleware/errorHandler.js";
 
 // import routes
 import subscriptionRoute from "./routes/subscriptionRoute.js";
+import authRoute from "./routes/authRoute.js";
 
 const PORT = process.env.PORT || 8080;
 
@@ -25,6 +26,9 @@ app.get("/", (req, res) => {
 
 // Subscription Routes
 app.use("/subscription", subscriptionRoute);
+
+// Auth Routes
+app.use("/auth", authRoute);
 
 // 404 Error
 app.use((req, res) => {

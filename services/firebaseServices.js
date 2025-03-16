@@ -63,4 +63,19 @@ const getMaskedId = async (subscriberId) => {
   }
 };
 
-export { saveSubscriberId, getMaskedId, verifyFirebaseUser };
+const getSubscriberIdByUserId = async (userId) => {
+  const docRef = await collectionRef.where("userId", "==", userId).get();
+
+  if (docRef.docs.length > 0) {
+    return docRef.docs[0].data().subscriberId;
+  } else {
+    throw new Error("Subscriber id not found in database");
+  }
+};
+
+export {
+  saveSubscriberId,
+  getMaskedId,
+  verifyFirebaseUser,
+  getSubscriberIdByUserId,
+};
