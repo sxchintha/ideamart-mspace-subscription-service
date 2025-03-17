@@ -4,7 +4,7 @@
  * This module provides utilities for logging events and HTTP requests.
  * It creates log files with timestamps and unique identifiers for each log entry.
  */
-import { format } from "date-fns";
+import { format, subMonths, parseISO } from "date-fns";
 import { v4 as uuid } from "uuid";
 import fs from "fs";
 const fsPromises = fs.promises;
@@ -12,6 +12,67 @@ import path from "path";
 
 // Get the directory name for the current module
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+/**
+ * Ensure logs directory exists
+ *
+ * @returns {Promise<void>}
+ */
+const ensureLogsDirectory = async () => {
+  const logsDir = path.join(__dirname, "..", "logs");
+  try {
+    if (!fs.existsSync(logsDir)) {
+      await fsPromises.mkdir(logsDir, { recursive: true });
+      console.log("Logs directory created successfully");
+    }
+  } catch (error) {
+    console.error(`Error creating logs directory: ${error.message}`);
+    throw error;
+  }
+};
+
+/**
+ * Clean up log files older than 3 months
+ *
+ * @returns {Promise<void>}
+ */
+const cleanupOldLogs = async () => {
+  const logsDir = path.join(__dirname, "..", "logs");
+  const threeMonthsAgo = subMonths(new Date(), 3);
+
+  try {
+    // Ensure logs directory exists
+    if (!fs.existsSync(logsDir)) {
+      return; // No logs directory, nothing to clean
+    }
+
+    // Get all files in the logs directory
+    const files = await fsPromises.readdir(logsDir);
+
+    for (const file of files) {
+      if (file.startsWith("reqLog_")) {
+        try {
+          // Extract date from filename (format: reqLog_yyyy-MM-dd.log)
+          const dateStr = file.substring(7, 17); // Extract yyyy-MM-dd
+          const fileDate = parseISO(dateStr);
+
+          // Check if file is older than 3 months
+          if (fileDate < threeMonthsAgo) {
+            const filePath = path.join(logsDir, file);
+            await fsPromises.unlink(filePath);
+            console.log(`Deleted old log file: ${file}`);
+          }
+        } catch (parseErr) {
+          console.error(
+            `Error processing log file ${file}: ${parseErr.message}`
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`Error cleaning up old logs: ${error.message}`);
+  }
+};
 
 /**
  * Log an event message to a specified log file
@@ -26,37 +87,113 @@ const logEvents = async (message, logName) => {
   // Create a log entry with timestamp, unique ID, and message
   const logItem = `${dateTime}\t${uuid()}\t${message}\n`;
 
-  // NOTE: File writing is currently commented out
-  // try {
-  //   if (!fs.existsSync(path.join(__dirname, "..", "logs"))) {
-  //     await fsPromises.writeFile(path.join(__dirname, "..", "logs"), "");
-  //   }
+  try {
+    // Ensure logs directory exists
+    await ensureLogsDirectory();
 
-  //   await fsPromises.appendFile(
-  //     path.join(__dirname, "..", "logs", logName),
-  //     logItem
-  //   );
-  // } catch (error) {
-  //   console.error(error);
-  // }
+    // Write log to file
+    await fsPromises.appendFile(
+      path.join(__dirname, "..", "logs", logName),
+      logItem
+    );
+  } catch (error) {
+    console.error(`Error writing to log file: ${error.message}`);
+  }
+};
+
+// Track when we last cleaned up logs
+let lastCleanupTime = 0;
+
+/**
+ * Get client IP address from request
+ *
+ * @param {Object} req - Express request object
+ * @returns {string} - IP address
+ */
+const getClientIP = (req) => {
+  return (
+    req.ip ||
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.socket?.remoteAddress ||
+    "unknown"
+  );
 };
 
 /**
- * Middleware to log HTTP requests
- * Logs the HTTP method, origin, and URL for each request
+ * Middleware to log HTTP requests and responses
+ * Logs the HTTP method, origin, URL, status code, response time, and more
  *
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
- * @returns {Promise<void>}
+ * @returns {void}
  */
-const logger = async (req, res, next) => {
+const logger = (req, res, next) => {
   // Create a log file name with the current date
   const fileName = `reqLog_${format(new Date(), "yyyy-MM-dd")}.log`;
-  // Log the request details
-  logEvents(`${req.method}\t${req.headers.origin}\t${req.url}`, fileName);
+
+  // Record request start time
+  const startTime = Date.now();
+
+  // Store original end function
+  const originalEnd = res.end;
+
+  // Override end function to capture response data
+  res.end = function (chunk, encoding) {
+    // Calculate response time
+    const responseTime = Date.now() - startTime;
+
+    // Get client IP address
+    const clientIP = getClientIP(req);
+
+    // Get user agent
+    const userAgent = req.headers["user-agent"] || "unknown";
+
+    // Create log message with enhanced details
+    const logMessage = [
+      `${req.method}`,
+      `${req.headers.origin || "unknown"}`,
+      `${req.url}`,
+      `status:${res.statusCode}`,
+      `ip:${clientIP}`,
+      `time:${responseTime}ms`,
+      `agent:${userAgent}`,
+    ].join("\t");
+
+    // Log the request and response details
+    logEvents(logMessage, fileName).catch((err) =>
+      console.error("Failed to log request:", err)
+    );
+
+    // Run cleanup once per day (86400000 ms = 24 hours)
+    const now = Date.now();
+    if (now - lastCleanupTime > 86400000) {
+      lastCleanupTime = now;
+      cleanupOldLogs().catch((err) =>
+        console.error("Failed to clean up old logs:", err)
+      );
+    }
+
+    // Call original end function
+    return originalEnd.call(this, chunk, encoding);
+  };
+
   // Continue to the next middleware
   next();
 };
 
-export { logger, logEvents };
+/**
+ * Log an error event
+ *
+ * @param {Error} err - The error object
+ * @param {string} [additionalInfo=''] - Any additional information
+ * @returns {Promise<void>}
+ */
+const logError = async (err, additionalInfo = "") => {
+  const fileName = `errorLog_${format(new Date(), "yyyy-MM-dd")}.log`;
+  const errorMessage = `${err.name}: ${err.message}\t${err.stack}\t${additionalInfo}`;
+
+  await logEvents(errorMessage, fileName);
+};
+
+export { logger, logEvents, cleanupOldLogs, logError };

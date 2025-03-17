@@ -5,7 +5,7 @@
  * It logs errors to a file and sends appropriate error responses to clients.
  */
 import { format } from "date-fns";
-import { logEvents } from "./logEvents.js";
+import { logError } from "./logEvents.js";
 
 /**
  * Global error handling middleware
@@ -18,15 +18,19 @@ import { logEvents } from "./logEvents.js";
  * @returns {void}
  */
 const errorHandler = (err, req, res, next) => {
-  // Create a log file name with the current date
-  const fileName = `errorLog_${format(new Date(), "yyyy-MM-dd")}.log`;
-
-  // Log the error to a file
-  logEvents(`${err.name}: ${err.message}`, fileName);
-
   // Use the status code set in the route handler or default to 500 (Internal Server Error)
   const statusCode =
     res.statusCode && res.statusCode != 200 ? res.statusCode : 500;
+
+  // Log the error with additional request information
+  const additionalInfo = `${req.method}\t${req.url}\t${
+    req.headers.origin || "unknown"
+  }\tIP: ${req.ip || req.socket?.remoteAddress || "unknown"}`;
+
+  // Use the dedicated logError function
+  logError(err, additionalInfo).catch((logErr) =>
+    console.error("Failed to log error:", logErr)
+  );
 
   // Log the error stack trace to the console for debugging
   console.log(statusCode, err.stack);
