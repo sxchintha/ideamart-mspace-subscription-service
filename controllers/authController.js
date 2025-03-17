@@ -1,3 +1,9 @@
+/**
+ * Authentication Controller Module
+ *
+ * This module contains controller functions for handling authentication-related
+ * operations such as retrieving subscriber IDs and managing device registration.
+ */
 import asyncHandler from "express-async-handler";
 import { getSubscriberIdByUserId } from "../services/firebaseServices.js";
 import {
@@ -6,6 +12,14 @@ import {
 } from "../services/sessionServices.js";
 import { StatusCode } from "../constants/index.js";
 
+/**
+ * Retrieve the subscriber ID associated with an authenticated user
+ *
+ * @param {Object} req - Express request object containing the authenticated user
+ * @param {Object} res - Express response object
+ * @throws {Error} If user is not authenticated
+ * @returns {Object} Response with subscriber ID if successful
+ */
 const handleGetSubscriberId = asyncHandler(async (req, res) => {
   const { user } = req;
 
@@ -23,9 +37,16 @@ const handleGetSubscriberId = asyncHandler(async (req, res) => {
 });
 
 /**
- * Update the device ID for a user
+ * Update or register a device ID for an authenticated user
+ * This enables device-based session management for security
+ *
  * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.deviceId - Device identifier to register
  * @param {Object} res - Express response object
+ * @throws {Error} If user is not authenticated or deviceId is missing
+ * @returns {Object} Response with success message and update timestamp
  */
 const updateDevice = asyncHandler(async (req, res) => {
   const { user } = req;
@@ -52,9 +73,16 @@ const updateDevice = asyncHandler(async (req, res) => {
 });
 
 /**
- * Check if the current device is valid for the user
+ * Check if the current device is valid for the authenticated user
+ * Used to verify if the user is accessing from their registered device
+ *
  * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user object
+ * @param {Object} req.headers - Request headers
+ * @param {string} req.headers["x-device-id"] - Device ID from request header
  * @param {Object} res - Express response object
+ * @throws {Error} If user is not authenticated or deviceId is missing
+ * @returns {Object} Response with device validation status
  */
 const checkDevice = asyncHandler(async (req, res) => {
   const { user } = req;

@@ -1,3 +1,10 @@
+/**
+ * Session Services Module
+ *
+ * This module provides services for managing user sessions and device authentication.
+ * It uses SQLite to store session information, allowing for device-based authentication
+ * where users can only be logged in from one device at a time.
+ */
 import Database from "better-sqlite3";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
@@ -7,10 +14,12 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Initialize SQLite database
+// Initialize SQLite database for session storage
 const db = new Database(path.join(__dirname, "../database/sessions.db"));
 
 // Create sessions table if it doesn't exist
+// This table stores user sessions with device information
+// The UNIQUE constraint on userId ensures one active session per user
 db.exec(`
   CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
@@ -25,8 +34,11 @@ db.exec(`
 
 /**
  * Register or update a device for a user
- * @param {string} userId - The user ID
- * @param {string} deviceId - The device ID
+ * This function either creates a new session or updates an existing one
+ * with a new device ID, implementing the "one device per user" policy
+ *
+ * @param {string} userId - The user ID from Firebase authentication
+ * @param {string} deviceId - The device ID to register
  * @returns {Object} Session object with id and updatedAt timestamp
  */
 const registerDevice = (userId, deviceId) => {
@@ -39,6 +51,7 @@ const registerDevice = (userId, deviceId) => {
 
   if (existingSession) {
     // Update existing session with new device ID
+    // This effectively logs out any other device
     const updateStmt = db.prepare(`
       UPDATE sessions 
       SET deviceId = ?, updatedAt = ?, isActive = 1
@@ -52,7 +65,7 @@ const registerDevice = (userId, deviceId) => {
       updatedAt: now,
     };
   } else {
-    // Create a new session
+    // Create a new session for first-time login
     const insertStmt = db.prepare(`
       INSERT INTO sessions (id, userId, deviceId, createdAt, updatedAt, isActive)
       VALUES (?, ?, ?, ?, ?, 1)
@@ -70,7 +83,9 @@ const registerDevice = (userId, deviceId) => {
 
 /**
  * Check if the device is the current registered device for the user
- * @param {string} userId - The user ID
+ * Used by the session verification middleware to validate requests
+ *
+ * @param {string} userId - The user ID from Firebase authentication
  * @param {string} deviceId - The device ID to check
  * @returns {boolean} True if device is valid, false otherwise
  */
@@ -86,8 +101,10 @@ const isValidDevice = (userId, deviceId) => {
 
 /**
  * Get the current device ID for a user
- * @param {string} userId - The user ID
- * @returns {string|null} The device ID or null if not found
+ * Used to check which device is currently registered for a user
+ *
+ * @param {string} userId - The user ID from Firebase authentication
+ * @returns {Object|null} Object with deviceId and updatedAt, or null if not found
  */
 const getCurrentDeviceId = (userId) => {
   const stmt = db.prepare(`

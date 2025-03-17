@@ -1,3 +1,9 @@
+/**
+ * Subscription Controller Module
+ *
+ * This module contains controller functions for handling subscription-related
+ * operations such as OTP verification, subscription status checks, and unsubscribe functionality.
+ */
 import asyncHandler from "express-async-handler";
 import validateSubscriberId from "../utils/validateSubscriberId.js";
 import handleApiResponse from "../utils/handleApiResponse.js";
@@ -12,6 +18,19 @@ import checkStatusCode from "../utils/checkStatusCode.js";
 import { getMaskedId, saveSubscriberId } from "../services/firebaseServices.js";
 import getServiceProvider from "../utils/getServiceProvider.js";
 
+/**
+ * Handle OTP request for subscription verification
+ * Initiates the OTP verification process by sending a code to the subscriber
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.subscriberId - Subscriber identifier (phone number)
+ * @param {string} req.body.device - Device information
+ * @param {string} req.body.os - Operating system information
+ * @param {Object} res - Express response object
+ * @throws {Error} If subscriberId is missing or invalid
+ * @returns {Object} Response with OTP request status
+ */
 const handleOtpRequest = asyncHandler(async (req, res) => {
   const { subscriberId, device, os } = req.body;
 
@@ -31,6 +50,20 @@ const handleOtpRequest = asyncHandler(async (req, res) => {
   handleApiResponse(response, res);
 });
 
+/**
+ * Handle OTP verification for subscription confirmation
+ * Verifies the OTP code and associates the subscriber ID with the user account
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.subscriberId - Subscriber identifier (phone number)
+ * @param {string} req.body.referenceNo - Reference number from OTP request
+ * @param {string} req.body.otp - One-time password to verify
+ * @param {Object} req.user - Authenticated user object
+ * @param {Object} res - Express response object
+ * @throws {Error} If required parameters are missing or user is not authenticated
+ * @returns {Object} Response with verification status
+ */
 const handleOtpVerify = asyncHandler(async (req, res) => {
   const { subscriberId, referenceNo, otp } = req.body;
   const { user } = req;
@@ -54,9 +87,11 @@ const handleOtpVerify = asyncHandler(async (req, res) => {
     otp
   );
 
+  // If verification is successful, save the subscriber ID to the user's account
   if (checkStatusCode(response?.data?.statusCode)) {
     let attempt = 0;
     let success = false;
+    // Retry up to 5 times in case of database write failures
     while (attempt < 5 && !success) {
       success = await saveSubscriberId(
         user,
@@ -70,6 +105,17 @@ const handleOtpVerify = asyncHandler(async (req, res) => {
   handleApiResponse(response, res);
 });
 
+/**
+ * Handle unsubscribe request
+ * Processes a request to unsubscribe a user from the service
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.subscriberId - Subscriber identifier (phone number)
+ * @param {Object} res - Express response object
+ * @throws {Error} If subscriberId is missing or invalid
+ * @returns {Object} Response with unsubscribe status
+ */
 const handleUnsubscribe = asyncHandler(async (req, res) => {
   const { subscriberId } = req.body;
 
@@ -88,6 +134,17 @@ const handleUnsubscribe = asyncHandler(async (req, res) => {
   handleApiResponse(response, res);
 });
 
+/**
+ * Handle subscription status check
+ * Retrieves the current subscription status for a subscriber
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.subscriberId - Subscriber identifier (phone number)
+ * @param {Object} res - Express response object
+ * @throws {Error} If subscriberId is missing or invalid
+ * @returns {Object} Response with subscription status
+ */
 const handleGetStatus = asyncHandler(async (req, res) => {
   const { subscriberId } = req.body;
 
@@ -106,6 +163,17 @@ const handleGetStatus = asyncHandler(async (req, res) => {
   handleApiResponse(response, res);
 });
 
+/**
+ * Handle charging information request
+ * Retrieves charging information for a subscriber
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.subscriberId - Subscriber identifier (phone number)
+ * @param {Object} res - Express response object
+ * @throws {Error} If subscriberId is missing or invalid
+ * @returns {Object} Response with charging information
+ */
 const handleGetChargingInfo = asyncHandler(async (req, res) => {
   const { subscriberId } = req.body;
 
