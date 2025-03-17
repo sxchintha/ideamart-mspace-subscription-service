@@ -16,6 +16,7 @@ app.use(express.json());
 import { logger } from "./middleware/logEvents.js";
 app.use(logger);
 
+// User verification middleware
 import { verifyUserMiddleware } from "./middleware/verifyUser.js";
 app.use(verifyUserMiddleware);
 
@@ -24,11 +25,15 @@ app.get("/", (req, res) => {
   res.send("Welcome to the API");
 });
 
-// Subscription Routes
-app.use("/subscription", subscriptionRoute);
-
-// Auth Routes
+// Auth Routes - These handle their own session verification internally
 app.use("/auth", authRoute);
+
+// Apply session verification middleware for all other routes
+import { verifySessionMiddleware } from "./middleware/verifySession.js";
+app.use(verifySessionMiddleware);
+
+// Subscription Routes - These require session verification
+app.use("/subscription", subscriptionRoute);
 
 // 404 Error
 app.use((req, res) => {
