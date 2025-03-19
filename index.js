@@ -23,6 +23,12 @@ app.use(express.json());
 import { logger } from "./middleware/logEvents.js";
 app.use(logger);
 
+/****************** Routes Configuration ******************/
+// Root route - simple health check endpoint
+app.get("/", (req, res) => {
+  res.send("Welcome to the API");
+});
+
 // Apply rate limiting middleware globally to protect against abuse
 // This limits each IP to 100 requests per 15-minute window
 app.use(standardLimiter);
@@ -30,12 +36,6 @@ app.use(standardLimiter);
 // User verification middleware - authenticates users via Firebase
 import { verifyUserMiddleware } from "./middleware/verifyUser.js";
 app.use(verifyUserMiddleware);
-
-/****************** Routes Configuration ******************/
-// Root route - simple health check endpoint
-app.get("/", (req, res) => {
-  res.send("Welcome to the API");
-});
 
 // Auth Routes - These handle their own session verification internally
 app.use("/auth", authRoute);
