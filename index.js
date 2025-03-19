@@ -6,7 +6,7 @@ import "dotenv/config";
 import express from "express";
 
 import errorHandler from "./middleware/errorHandler.js";
-import { standardLimiter, authLimiter } from "./middleware/rateLimit.js";
+import { standardLimiter } from "./middleware/rateLimit.js";
 
 // Import route modules
 import subscriptionRoute from "./routes/subscriptionRoute.js";
@@ -23,7 +23,8 @@ app.use(express.json());
 import { logger } from "./middleware/logEvents.js";
 app.use(logger);
 
-// Apply standard rate limiting middleware globally
+// Apply rate limiting middleware globally to protect against abuse
+// This limits each IP to 100 requests per 15-minute window
 app.use(standardLimiter);
 
 // User verification middleware - authenticates users via Firebase
@@ -36,8 +37,8 @@ app.get("/", (req, res) => {
   res.send("Welcome to the API");
 });
 
-// Auth Routes with stricter rate limiting - These handle their own session verification internally
-app.use("/auth", authLimiter, authRoute);
+// Auth Routes - These handle their own session verification internally
+app.use("/auth", authRoute);
 
 // Apply session verification middleware for all subsequent routes
 // This ensures device verification for protected endpoints

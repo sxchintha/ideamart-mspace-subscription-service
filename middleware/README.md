@@ -4,46 +4,54 @@
 
 The application uses `express-rate-limit` to protect API endpoints from abuse by limiting the number of requests that can be made by a single IP address within a specified time window.
 
-### Available Rate Limiters
+### Currently Implemented Rate Limiting
 
-1. **Standard Limiter (`standardLimiter`)**
+The application uses a single global rate limiter:
 
-   - Applied globally to all routes
-   - Limit: 100 requests per 15-minute window per IP
-   - Use case: General protection for all API endpoints
+**Standard Limiter (`standardLimiter`)**
 
-2. **Authentication Limiter (`authLimiter`)**
+- Applied globally to all routes
+- Limit: 100 requests per 15-minute window per IP
+- Use case: General protection for the entire API against abuse
 
-   - Applied specifically to `/auth` routes
-   - Limit: 5 requests per 15-minute window per IP
+### How It's Applied
+
+In the main `index.js` file, the rate limiter is applied globally:
+
+```javascript
+// Apply rate limiting middleware globally to protect against abuse
+// This limits each IP to 100 requests per 15-minute window
+app.use(standardLimiter);
+```
+
+### Additional Rate Limiters (Not Currently Used)
+
+The `rateLimit.js` file includes additional rate limiter configurations that can be enabled if needed:
+
+1. **Authentication Limiter (`authLimiter`)**
+
+   - Could be applied to auth routes for stricter limits
+   - Configured for 5 requests per 15-minute window per IP
    - Use case: Protect against brute force attacks on authentication endpoints
 
-3. **Heavy Operation Limiter (`heavyOperationLimiter`)**
-   - Available for resource-intensive operations
-   - Limit: 30 requests per 60-minute window per IP
+2. **Heavy Operation Limiter (`heavyOperationLimiter`)**
+   - Could be applied to resource-intensive operations
+   - Configured for 30 requests per 60-minute window per IP
    - Use case: Protect endpoints that consume significant server resources
 
-### How to Apply
+### Applying Additional Rate Limiters
 
-1. **Global application** (already applied in index.js):
+If needed in the future, you can apply additional rate limiters in various ways:
 
-   ```javascript
-   // Apply standard rate limiting middleware globally
-   app.use(standardLimiter);
-   ```
-
-2. **Route-specific application**:
+1. **Route-specific application**:
 
    ```javascript
    // Example: Apply to a specific route
-   app.use(
-     "/api/resource-intensive-endpoint",
-     heavyOperationLimiter,
-     yourRouteHandler
-   );
+   import { authLimiter } from "./middleware/rateLimit.js";
+   app.use("/auth", authLimiter, authRoute);
    ```
 
-3. **Router-level application**:
+2. **Router-level application**:
 
    ```javascript
    // Example: Apply to all routes in a router
@@ -54,7 +62,6 @@ The application uses `express-rate-limit` to protect API endpoints from abuse by
    router.use(heavyOperationLimiter);
 
    // Define routes...
-
    export default router;
    ```
 
