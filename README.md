@@ -1,8 +1,8 @@
-# MCQ Karamu Backend
+# Manage Dialog and Mobitel Subscription Services
 
 ## Overview
 
-MCQ Karamu Backend is a Node.js Express API that provides authentication, subscription management, and device-based session management for the MCQ Karamu application. The backend uses Firebase for authentication and SQLite for session storage.
+This is a Node.js Express API that provides authentication, subscription management, and device-based session management. The backend uses Firebase for authentication and SQLite for session storage.
 
 ## Features
 
@@ -25,7 +25,7 @@ MCQ Karamu Backend is a Node.js Express API that provides authentication, subscr
 ### Prerequisites
 
 - Node.js (v14 or higher)
-- npm or yarn
+- npm
 - Firebase project with authentication enabled
 
 ### Installation
@@ -42,19 +42,11 @@ MCQ Karamu Backend is a Node.js Express API that provides authentication, subscr
    npm install
    ```
 
-3. Create a `.env` file based on `.env.sample` with your Firebase configuration:
+3. Create a `.env` file based on `.env.sample`
 
-   ```
-   PORT=8080
-   FIREBASE_API_KEY=your-api-key
-   FIREBASE_AUTH_DOMAIN=your-auth-domain
-   FIREBASE_PROJECT_ID=your-project-id
-   FIREBASE_STORAGE_BUCKET=your-storage-bucket
-   FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
-   FIREBASE_APP_ID=your-app-id
-   ```
+4. Add `firebase.json` to config folder.
 
-4. Start the development server:
+5. Start the development server:
    ```
    npm run dev
    ```

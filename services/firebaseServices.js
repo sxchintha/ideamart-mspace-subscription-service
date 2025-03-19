@@ -10,7 +10,7 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
-import serviceAccount from "../config/ttest-4bb00-firebase-adminsdk-x5lko-19d21f50cd.json" assert { type: "json" };
+import serviceAccount from "../config/firebase.json" assert { type: "json" };
 import validateSubscriberId from "../utils/validateSubscriberId.js";
 
 // Initialize Firebase application with service account credentials
