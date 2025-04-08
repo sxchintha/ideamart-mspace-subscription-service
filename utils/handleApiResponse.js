@@ -8,7 +8,7 @@ const handleApiResponse = (response, res) => {
       ...response.data,
     });
   } else {
-    res.status(response.status === 200 ? 400 : response.status).send({
+    res.status(response.status === 200 ? 400 : response.status || 500).send({
       apiStatus: "error",
       ...response.data,
     });

@@ -17,6 +17,14 @@ import {
 import checkStatusCode from "../utils/checkStatusCode.js";
 import { getMaskedId, saveSubscriberId } from "../services/firebaseServices.js";
 import getServiceProvider from "../utils/getServiceProvider.js";
+import {
+  isWhitelisted,
+  getMockOtpRequestResponse,
+  getMockOtpVerifyResponse,
+  getMockUnsubscribeResponse,
+  getMockGetStatusResponse,
+  getMockGetChargingInfoResponse,
+} from "../utils/handleWhitelist.js";
 
 /**
  * Handle OTP request for subscription verification
@@ -40,6 +48,13 @@ const handleOtpRequest = asyncHandler(async (req, res) => {
   }
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
+
+  if (isWhitelisted(formattedSubscriberId)) {
+    return handleApiResponse(
+      getMockOtpRequestResponse(formattedSubscriberId),
+      res
+    );
+  }
 
   const response = await otpRequestService(
     getServiceProvider(formattedSubscriberId),
@@ -79,6 +94,10 @@ const handleOtpVerify = asyncHandler(async (req, res) => {
   } else if (!otp) {
     res.status(400);
     throw new Error("otp is required");
+  }
+
+  if (isWhitelisted(formattedSubscriberId)) {
+    return handleApiResponse(getMockOtpVerifyResponse(otp), res);
   }
 
   const response = await otpVerifyService(
@@ -125,6 +144,11 @@ const handleUnsubscribe = asyncHandler(async (req, res) => {
   }
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
+
+  if (isWhitelisted(formattedSubscriberId)) {
+    return handleApiResponse(getMockUnsubscribeResponse(), res);
+  }
+
   const maskedId = await getMaskedId(formattedSubscriberId);
 
   const response = await unsubscribeService(
@@ -154,6 +178,11 @@ const handleGetStatus = asyncHandler(async (req, res) => {
   }
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
+
+  if (isWhitelisted(formattedSubscriberId)) {
+    return handleApiResponse(getMockGetStatusResponse(), res);
+  }
+
   const maskedId = await getMaskedId(formattedSubscriberId);
 
   const response = await getStatusService(
@@ -184,6 +213,10 @@ const handleGetChargingInfo = asyncHandler(async (req, res) => {
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
   const maskedId = await getMaskedId(formattedSubscriberId);
+
+  if (isWhitelisted(formattedSubscriberId)) {
+    return handleApiResponse(getMockGetChargingInfoResponse(), res);
+  }
 
   const response = await getChargingInfoService(
     getServiceProvider(formattedSubscriberId),
