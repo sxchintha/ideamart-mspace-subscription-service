@@ -28,12 +28,20 @@ const handleGetSubscriberId = asyncHandler(async (req, res) => {
     throw new Error("Unauthorized");
   }
 
-  const subscriberId = await getSubscriberIdByUserId(user.uid);
+  try {
+    const subscriberId = await getSubscriberIdByUserId(user.uid);
 
-  res.status(200).send({
-    apiStatus: "success",
-    subscriberId,
-  });
+    res.status(200).send({
+      apiStatus: "success",
+      subscriberId,
+    });
+  } catch (error) {
+    res.status(401).send({
+      apiStatus: "error",
+      message: error.message,
+      statusCode: StatusCode.SUBSCRIBER_ID_NOT_FOUND,
+    });
+  }
 });
 
 /**
@@ -108,8 +116,8 @@ const checkDevice = asyncHandler(async (req, res) => {
       updatedAt: currentDevice.updatedAt,
     });
   } else {
-    res.status(200).send({
-      apiStatus: "success",
+    res.status(401).send({
+      apiStatus: "error",
       message: "Device is not the current registered device",
       isCurrentDevice: false,
       updatedAt: currentDevice ? currentDevice.updatedAt : null,

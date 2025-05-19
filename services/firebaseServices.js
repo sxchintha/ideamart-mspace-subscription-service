@@ -12,6 +12,7 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import serviceAccount from "../config/firebase.json" assert { type: "json" };
 import validateSubscriberId from "../utils/validateSubscriberId.js";
+import { StatusCode } from "../constants/statusCodes.js";
 
 // Initialize Firebase application with service account credentials
 initializeApp({
@@ -97,7 +98,9 @@ const getMaskedId = async (subscriberId) => {
     return doc.data().maskedId;
   } else {
     console.log("Error in getMaskedId", subscriberId);
-    throw new Error("Subscriber id not found in database");
+    throw new Error("Subscriber id not found in database", {
+      cause: { statusCode: StatusCode.SUBSCRIBER_ID_NOT_FOUND },
+    });
   }
 };
 
