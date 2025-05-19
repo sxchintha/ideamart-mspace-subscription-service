@@ -24,7 +24,11 @@ import { StatusCode } from "../constants/index.js";
 const verifySessionMiddleware = (req, res, next) => {
   // Skip session verification for device registration route
   // This allows users to register a new device without having a valid session
-  if (req.path.includes("/update-device")) {
+  if (
+    req.path.includes("/update-device") ||
+    req.path.includes("/subscription/get-status") ||
+    req.path.includes("/subscription/get-charging-info")
+  ) {
     return next();
   }
 

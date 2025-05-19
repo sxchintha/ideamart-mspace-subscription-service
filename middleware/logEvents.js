@@ -111,12 +111,23 @@ let lastCleanupTime = 0;
  * @returns {string} - IP address
  */
 const getClientIP = (req) => {
-  return (
-    req.ip ||
-    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    "unknown"
-  );
+  // Check X-Forwarded-For header first (contains original client IP)
+  const forwardedFor = req.headers["x-forwarded-for"];
+  if (forwardedFor) {
+    // X-Forwarded-For can contain multiple IPs, first one is the original client
+    const firstIP = forwardedFor.split(",")[0].trim();
+    return firstIP.replace(/^::ffff:/, "");
+  }
+
+  // Check X-Real-IP header (set by some proxies)
+  const realIP = req.headers["x-real-ip"];
+  if (realIP) {
+    return realIP.replace(/^::ffff:/, "");
+  }
+
+  // Fallback to other methods
+  const ip = req.ip || req.socket?.remoteAddress || "unknown";
+  return ip.replace(/^::ffff:/, "");
 };
 
 /**

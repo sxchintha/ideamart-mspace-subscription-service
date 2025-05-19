@@ -17,6 +17,10 @@ const PORT = process.env.PORT || 8080;
 
 // Initialize Express application
 const app = express();
+
+// Trust proxy - this is important for getting real client IPs behind AWS ELB/ALB
+app.set("trust proxy", true);
+
 app.use(express.json());
 
 // Custom middleware for logging all requests
