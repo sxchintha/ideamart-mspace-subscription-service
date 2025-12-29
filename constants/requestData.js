@@ -5,6 +5,8 @@ export const DEFAULT_META_DATA = {
   appCode: "https://play.google.com/store/apps/details?id=lk",
 };
 
+export const APPLICATION_HASH = "abcdefgh";
+
 export const SUBSCRIPTION_ACTION = {
   SUBSCRIBE: "1",
   UNSUBSCRIBE: "0",

@@ -5,13 +5,32 @@
  * It handles OTP-based verification, subscription status checks, and unsubscribe functionality.
  * Each service function makes API requests to the appropriate service provider endpoint.
  */
+import apiRequest from "../utils/apiRequest.js";
 import { AxiosError } from "axios";
 import { API_ENDPOINT } from "../constants/apiConstants.js";
 import {
   DEFAULT_META_DATA,
   SUBSCRIPTION_ACTION,
+  APPLICATION_HASH,
 } from "../constants/requestData.js";
-import apiRequest from "../utils/apiRequest.js";
+
+/**
+ * Shared wrapper for handling API requests and errors
+ *
+ * @param {Function} requestFn - The async function that performs the API request
+ * @returns {Object} The API response
+ * @throws {Error} Re-throws non-Axios errors
+ */
+const handleServiceRequest = async (requestFn) => {
+  try {
+    return await requestFn();
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      return error.response;
+    }
+    throw error;
+  }
+};
 
 /**
  * Request an OTP for subscription verification
@@ -29,32 +48,24 @@ const otpRequestService = async (serviceProvider, subscriberId, device, os) => {
     throw new Error("subscriberId is required");
   }
 
-  try {
-    // Prepare request data with subscriber information and device metadata
-    const data = {
-      subscriberId: `tel:${subscriberId}`,
-      applicationHash: "abcdefgh",
-      applicationMetaData: {
-        ...DEFAULT_META_DATA,
-        device: device || DEFAULT_META_DATA.device,
-        os: os || DEFAULT_META_DATA.os,
-      },
-    };
+  // Prepare request data with subscriber information and device metadata
+  const data = {
+    subscriberId: `tel:${subscriberId}`,
+    applicationHash: APPLICATION_HASH,
+    applicationMetaData: {
+      ...DEFAULT_META_DATA,
+      device: device || DEFAULT_META_DATA.device,
+      os: os || DEFAULT_META_DATA.os,
+    },
+  };
 
-    // Make API request to the OTP request endpoint
-    return await apiRequest(
+  return handleServiceRequest(() =>
+    apiRequest(
       serviceProvider,
       API_ENDPOINT[serviceProvider]?.OTP_REQUEST,
       data
-    );
-  } catch (error) {
-    // Handle Axios errors separately to return the response
-    if (error instanceof AxiosError) {
-      return error.response;
-    } else {
-      throw error;
-    }
-  }
+    )
+  );
 };
 
 /**
@@ -74,26 +85,15 @@ const otpVerifyService = async (serviceProvider, referenceNo, otp) => {
     throw new Error("otp is required");
   }
 
-  try {
-    // Prepare request data with reference number and OTP
-    const data = {
-      referenceNo,
-      otp,
-    };
+  // Prepare request data with reference number and OTP
+  const data = {
+    referenceNo,
+    otp,
+  };
 
-    // Make API request to the OTP verification endpoint
-    return await apiRequest(
-      serviceProvider,
-      API_ENDPOINT[serviceProvider]?.OTP_VERIFY,
-      data
-    );
-  } catch (error) {
-    if (error instanceof AxiosError) {
-      return error.response;
-    } else {
-      throw error;
-    }
-  }
+  return handleServiceRequest(() =>
+    apiRequest(serviceProvider, API_ENDPOINT[serviceProvider]?.OTP_VERIFY, data)
+  );
 };
 
 /**
@@ -110,26 +110,19 @@ const unsubscribeService = async (serviceProvider, subscriberId) => {
     throw new Error("subscriberId is required");
   }
 
-  try {
-    // Prepare request data with subscriber ID and unsubscribe action
-    const data = {
-      subscriberId: `${subscriberId}`,
-      action: SUBSCRIPTION_ACTION.UNSUBSCRIBE,
-    };
+  // Prepare request data with subscriber ID and unsubscribe action
+  const data = {
+    subscriberId: `${subscriberId}`,
+    action: SUBSCRIPTION_ACTION.UNSUBSCRIBE,
+  };
 
-    // Make API request to the unsubscribe endpoint
-    return await apiRequest(
+  return handleServiceRequest(() =>
+    apiRequest(
       serviceProvider,
       API_ENDPOINT[serviceProvider]?.UNSUBSCRIBE,
       data
-    );
-  } catch (error) {
-    if (error instanceof AxiosError) {
-      return error.response;
-    } else {
-      throw error;
-    }
-  }
+    )
+  );
 };
 
 /**
@@ -146,25 +139,14 @@ const getStatusService = async (serviceProvider, subscriberId) => {
     throw new Error("subscriberId is required");
   }
 
-  try {
-    // Prepare request data with subscriber ID
-    const data = {
-      subscriberId: `${subscriberId}`,
-    };
+  // Prepare request data with subscriber ID
+  const data = {
+    subscriberId: `${subscriberId}`,
+  };
 
-    // Make API request to the status endpoint
-    return await apiRequest(
-      serviceProvider,
-      API_ENDPOINT[serviceProvider]?.GET_STATUS,
-      data
-    );
-  } catch (error) {
-    if (error instanceof AxiosError) {
-      return error.response;
-    } else {
-      throw error;
-    }
-  }
+  return handleServiceRequest(() =>
+    apiRequest(serviceProvider, API_ENDPOINT[serviceProvider]?.GET_STATUS, data)
+  );
 };
 
 /**
@@ -181,23 +163,16 @@ const getChargingInfoService = async (serviceProvider, subscriberIds) => {
     throw new Error("subscriberId is required");
   }
 
-  try {
-    // Prepare request data with array of subscriber IDs
-    const data = { subscriberIds };
+  // Prepare request data with array of subscriber IDs
+  const data = { subscriberIds };
 
-    // Make API request to the charging info endpoint
-    return await apiRequest(
+  return handleServiceRequest(() =>
+    apiRequest(
       serviceProvider,
       API_ENDPOINT[serviceProvider]?.GET_CHARGING_INFO,
       data
-    );
-  } catch (error) {
-    if (error instanceof AxiosError) {
-      return error.response;
-    } else {
-      throw error;
-    }
-  }
+    )
+  );
 };
 
 export {

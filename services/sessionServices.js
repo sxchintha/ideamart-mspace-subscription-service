@@ -10,12 +10,20 @@ import { v4 as uuidv4 } from "uuid";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import fs from "fs";
+
 // Get the directory name of the current module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const dbPath = path.join(__dirname, "../database");
+
+if (!fs.existsSync(dbPath)) {
+  fs.mkdirSync(dbPath);
+}
+
 // Initialize SQLite database for session storage
-const db = new Database(path.join(__dirname, "../database/sessions.db"));
+const db = new Database(path.join(dbPath, "sessions.db"));
 
 // Create sessions table if it doesn't exist
 // This table stores user sessions with device information

@@ -212,11 +212,11 @@ const handleGetChargingInfo = asyncHandler(async (req, res) => {
   }
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
-  const maskedId = await getMaskedId(formattedSubscriberId);
-
   if (isWhitelisted(formattedSubscriberId)) {
     return handleApiResponse(getMockGetChargingInfoResponse(), res);
   }
+
+  const maskedId = await getMaskedId(formattedSubscriberId);
 
   const response = await getChargingInfoService(
     getServiceProvider(formattedSubscriberId),

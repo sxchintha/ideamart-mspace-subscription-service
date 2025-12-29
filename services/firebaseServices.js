@@ -10,7 +10,7 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
-import serviceAccount from "../config/firebase.json" assert { type: "json" };
+import serviceAccount from "../config/firebase.json" with { type: "json" };
 import validateSubscriberId from "../utils/validateSubscriberId.js";
 import { StatusCode } from "../constants/statusCodes.js";
 
@@ -50,7 +50,7 @@ const verifyFirebaseUser = async (idToken) => {
  * @returns {boolean} True if save was successful, false otherwise
  */
 const saveSubscriberId = async (user, subscriberId, maskedId) => {
-  console.log("Saving subscriber id", user, subscriberId, maskedId);
+  console.log("Saving subscriber id", subscriberId, maskedId);
 
   if (!subscriberId || !maskedId) {
     console.log("Invalid subscriber id or masked id");
