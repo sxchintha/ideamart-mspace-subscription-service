@@ -11,6 +11,10 @@ This is a Node.js Express API that provides authentication, subscription managem
 - Subscription management with OTP verification
 - Secure API endpoints with middleware protection
 - Single active device per user (prevents multiple logins)
+- Request/response logging with daily log files
+- Centralized error handling with standardized responses
+- Automatic log cleanup (logs older than 3 months are removed)
+- Rate limiting protection against API abuse
 
 ## Technologies Used
 
@@ -376,10 +380,16 @@ If a user tries to access a protected route with an invalid device:
 - `/middleware` - Express middleware for authentication and session verification
 - `/services` - Business logic and external service integrations
 - `/routes` - API route definitions
+- `/config` - Configuration files (Firebase, etc.)
 - `/database` - SQLite database files
 - `/constants` - Application constants and status codes
 - `/utils` - Utility functions
+- `/logs` - Application log files
 
 ## License
 
-ISC
+This project is licensed under the MIT License. See the LICENSE file for details.
+
+## Disclaimer
+
+This project is not officially affiliated with Dialog Ideamart or mSpace.
