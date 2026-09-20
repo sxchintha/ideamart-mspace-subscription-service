@@ -4,6 +4,7 @@
  */
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 
 import errorHandler from "./middleware/errorHandler.js";
 import { standardLimiter } from "./middleware/rateLimit.js";
@@ -20,6 +21,24 @@ const app = express();
 
 // Trust proxy - this is important for getting real client IPs behind AWS ELB/ALB
 app.set("trust proxy", true);
+
+// CORS - restrict to allowed frontend origin(s), configured via env
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+  })
+);
 
 app.use(express.json());
 
