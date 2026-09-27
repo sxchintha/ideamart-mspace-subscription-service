@@ -12,7 +12,6 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { readFileSync } from "fs";
 import validateSubscriberId from "../utils/validateSubscriberId.js";
-import { StatusCode } from "../constants/statusCodes.js";
 
 // Initialize Firebase with service account credentials, or against the emulators in tests
 if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
@@ -84,29 +83,44 @@ const saveSubscriberId = async (user, subscriberId, maskedId) => {
 };
 
 /**
- * Get the masked ID for a subscriber ID from Firestore
- * Used to retrieve the masked version of a subscriber ID for API calls
+ * Get the masked-ids entry linking a subscriber ID to a user
  *
  * @param {string} subscriberId - The subscriber identifier (phone number)
- * @returns {string} The masked subscriber ID
- * @throws {Error} If subscriber ID is not found in the database
+ * @returns {Object|null} The entry ({ userId, subscriberId, maskedId }), or null if the number isn't linked
  */
-const getMaskedId = async (subscriberId) => {
+const getSubscriberLink = async (subscriberId) => {
   // Ensure subscriber ID is in the correct format
   subscriberId = validateSubscriberId(subscriberId, null);
 
-  const docRef = collectionRef.doc(subscriberId);
+  const doc = await collectionRef.doc(subscriberId).get();
+  return doc.exists ? doc.data() : null;
+};
 
-  const doc = await docRef.get();
+/**
+ * Get every masked-ids entry linked to a user
+ *
+ * @param {string} userId - The Firebase user ID
+ * @returns {Object[]} The user's entries ({ userId, subscriberId, maskedId })
+ */
+const getSubscriberLinksByUserId = async (userId) => {
+  const snapshot = await collectionRef.where("userId", "==", userId).get();
+  return snapshot.docs.map((doc) => doc.data());
+};
 
-  if (doc.exists) {
-    return doc.data().maskedId;
-  } else {
-    console.log("Error in getMaskedId", subscriberId);
-    throw new Error("Subscriber id not found in database", {
-      cause: { statusCode: StatusCode.SUBSCRIBER_ID_NOT_FOUND },
-    });
-  }
+/**
+ * Remove a user's links to numbers other than the one they just subscribed with
+ *
+ * @param {string} userId - The Firebase user ID
+ * @param {string} subscriberId - The subscriber ID to keep
+ * @returns {Promise<void>}
+ */
+const deleteOtherSubscriberLinks = async (userId, subscriberId) => {
+  const links = await getSubscriberLinksByUserId(userId);
+  await Promise.all(
+    links
+      .filter((link) => link.subscriberId !== subscriberId)
+      .map((link) => collectionRef.doc(link.subscriberId).delete())
+  );
 };
 
 /**
@@ -129,7 +143,9 @@ const getSubscriberIdByUserId = async (userId) => {
 
 export {
   saveSubscriberId,
-  getMaskedId,
+  getSubscriberLink,
+  getSubscriberLinksByUserId,
+  deleteOtherSubscriberLinks,
   verifyFirebaseUser,
   getSubscriberIdByUserId,
 };

@@ -15,7 +15,12 @@ import {
   getChargingInfoService,
 } from "../services/subscriptionServices.js";
 import checkStatusCode from "../utils/checkStatusCode.js";
-import { getMaskedId, saveSubscriberId } from "../services/firebaseServices.js";
+import {
+  deleteOtherSubscriberLinks,
+  getSubscriberLink,
+  getSubscriberLinksByUserId,
+  saveSubscriberId,
+} from "../services/firebaseServices.js";
 import getServiceProvider from "../utils/getServiceProvider.js";
 import {
   isWhitelisted,
@@ -25,6 +30,100 @@ import {
   getMockGetStatusResponse,
   getMockGetChargingInfoResponse,
 } from "../utils/handleWhitelist.js";
+import { StatusCode } from "../constants/index.js";
+import getSubscriptionState, {
+  SUBSCRIPTION_STATE,
+} from "../utils/getSubscriptionState.js";
+
+/**
+ * Get the masked ID for a subscriber ID linked to the calling user.
+ * A number linked to another account is rejected, so nobody can check or cancel someone else's subscription.
+ *
+ * @param {string} subscriberId - Formatted subscriber identifier (phone number)
+ * @param {Object} user - Authenticated user object
+ * @param {Object} res - Express response object
+ * @throws {Error} If the number isn't linked, or is linked to another user
+ * @returns {string} The masked subscriber ID
+ */
+const getOwnedMaskedId = async (subscriberId, user, res) => {
+  const link = await getSubscriberLink(subscriberId);
+
+  if (!link) {
+    throw new Error("Subscriber id not found in database", {
+      cause: { statusCode: StatusCode.SUBSCRIBER_ID_NOT_FOUND },
+    });
+  }
+
+  if (link.userId !== user.uid) {
+    res.status(403);
+    throw new Error("This number is linked to another account", {
+      cause: { statusCode: StatusCode.SUBSCRIBER_ID_NOT_OWNED },
+    });
+  }
+
+  return link.maskedId;
+};
+
+/**
+ * Get the carrier's subscription status for a number, mocked for whitelisted test numbers
+ *
+ * @param {string} subscriberId - Formatted subscriber identifier (phone number)
+ * @param {string} maskedId - The masked subscriber ID
+ * @returns {Promise<Object>} Carrier API response
+ */
+const getStatus = async (subscriberId, maskedId) =>
+  isWhitelisted(subscriberId)
+    ? getMockGetStatusResponse()
+    : getStatusService(getServiceProvider(subscriberId), maskedId);
+
+/**
+ * Check whether the carrier still reports a linked number as subscribed.
+ * Anything short of a definite UNREGISTERED counts as subscribed.
+ *
+ * @param {Object} link - masked-ids entry ({ subscriberId, maskedId })
+ * @returns {Promise<boolean>}
+ */
+const isStillSubscribed = async (link) => {
+  const response = await getStatus(link.subscriberId, link.maskedId);
+  return getSubscriptionState(response) !== SUBSCRIPTION_STATE.UNREGISTERED;
+};
+
+/**
+ * Enforce one number per account and one account per number.
+ * An existing link only blocks a new one while its number is still subscribed.
+ * A link without a userId belongs to a deleted account, so it never blocks.
+ *
+ * @param {string} subscriberId - Formatted subscriber identifier (phone number)
+ * @param {Object} user - Authenticated user object
+ * @param {Object} res - Express response object
+ * @throws {Error} If the number or the user is already linked elsewhere
+ * @returns {Promise<void>}
+ */
+const assertCanLink = async (subscriberId, user, res) => {
+  const numberLink = await getSubscriberLink(subscriberId);
+
+  if (
+    numberLink?.userId &&
+    numberLink.userId !== user.uid &&
+    (await isStillSubscribed(numberLink))
+  ) {
+    res.status(409);
+    throw new Error("This number is linked to another account", {
+      cause: { statusCode: StatusCode.SUBSCRIBER_ID_IN_USE },
+    });
+  }
+
+  const userLinks = await getSubscriberLinksByUserId(user.uid);
+
+  for (const link of userLinks) {
+    if (link.subscriberId !== subscriberId && (await isStillSubscribed(link))) {
+      res.status(409);
+      throw new Error("This account is already subscribed with another number", {
+        cause: { statusCode: StatusCode.USER_ALREADY_SUBSCRIBED },
+      });
+    }
+  }
+};
 
 /**
  * Handle OTP request for subscription verification
@@ -96,15 +195,15 @@ const handleOtpVerify = asyncHandler(async (req, res) => {
     throw new Error("otp is required");
   }
 
-  if (isWhitelisted(formattedSubscriberId)) {
-    return handleApiResponse(getMockOtpVerifyResponse(otp), res);
-  }
+  await assertCanLink(formattedSubscriberId, user, res);
 
-  const response = await otpVerifyService(
-    getServiceProvider(formattedSubscriberId),
-    referenceNo,
-    otp
-  );
+  const response = isWhitelisted(formattedSubscriberId)
+    ? getMockOtpVerifyResponse(otp)
+    : await otpVerifyService(
+        getServiceProvider(formattedSubscriberId),
+        referenceNo,
+        otp
+      );
 
   // If verification is successful, save the subscriber ID to the user's account
   if (checkStatusCode(response?.data?.statusCode)) {
@@ -118,6 +217,10 @@ const handleOtpVerify = asyncHandler(async (req, res) => {
         response?.data?.subscriberId
       );
       attempt++;
+    }
+
+    if (success) {
+      await deleteOtherSubscriberLinks(user.uid, formattedSubscriberId);
     }
   }
 
@@ -145,16 +248,14 @@ const handleUnsubscribe = asyncHandler(async (req, res) => {
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
 
-  if (isWhitelisted(formattedSubscriberId)) {
-    return handleApiResponse(getMockUnsubscribeResponse(), res);
-  }
+  const maskedId = await getOwnedMaskedId(formattedSubscriberId, req.user, res);
 
-  const maskedId = await getMaskedId(formattedSubscriberId);
-
-  const response = await unsubscribeService(
-    getServiceProvider(formattedSubscriberId),
-    maskedId
-  );
+  const response = isWhitelisted(formattedSubscriberId)
+    ? getMockUnsubscribeResponse()
+    : await unsubscribeService(
+        getServiceProvider(formattedSubscriberId),
+        maskedId
+      );
   handleApiResponse(response, res);
 });
 
@@ -179,16 +280,9 @@ const handleGetStatus = asyncHandler(async (req, res) => {
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
 
-  if (isWhitelisted(formattedSubscriberId)) {
-    return handleApiResponse(getMockGetStatusResponse(), res);
-  }
+  const maskedId = await getOwnedMaskedId(formattedSubscriberId, req.user, res);
 
-  const maskedId = await getMaskedId(formattedSubscriberId);
-
-  const response = await getStatusService(
-    getServiceProvider(formattedSubscriberId),
-    maskedId
-  );
+  const response = await getStatus(formattedSubscriberId, maskedId);
   handleApiResponse(response, res);
 });
 
@@ -212,16 +306,15 @@ const handleGetChargingInfo = asyncHandler(async (req, res) => {
   }
 
   const formattedSubscriberId = validateSubscriberId(subscriberId, res);
-  if (isWhitelisted(formattedSubscriberId)) {
-    return handleApiResponse(getMockGetChargingInfoResponse(), res);
-  }
 
-  const maskedId = await getMaskedId(formattedSubscriberId);
+  const maskedId = await getOwnedMaskedId(formattedSubscriberId, req.user, res);
 
-  const response = await getChargingInfoService(
-    getServiceProvider(formattedSubscriberId),
-    [maskedId]
-  );
+  const response = isWhitelisted(formattedSubscriberId)
+    ? getMockGetChargingInfoResponse()
+    : await getChargingInfoService(
+        getServiceProvider(formattedSubscriberId),
+        [maskedId]
+      );
   handleApiResponse(response, res);
 });
 

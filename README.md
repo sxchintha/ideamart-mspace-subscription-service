@@ -11,6 +11,7 @@ This is a Node.js Express API that provides authentication, subscription managem
 - Subscription management with OTP verification
 - Secure API endpoints with middleware protection
 - Single active device per user (prevents multiple logins)
+- One subscribed number per account, and one account per number
 - Request/response logging with daily log files
 - Centralized error handling with standardized responses
 - Automatic log cleanup (logs older than 3 months are removed)
@@ -175,6 +176,8 @@ All subscription endpoints require authentication. All of them except `get-statu
 
 Responses put the carrier's fields at the top level next to `apiStatus`; nothing is nested under `data`. A carrier status code starting with `S` returns HTTP 200 with `"apiStatus": "success"`; anything else returns an error status with `"apiStatus": "error"` and the carrier's fields.
 
+`get-status`, `unsubscribe` and `get-charging-info` only act on a number linked to the caller (see [Number Linking](#number-linking)).
+
 #### Request OTP
 
 ```
@@ -245,6 +248,11 @@ Verifies the OTP and completes the subscription process.
   "version": "1.0"
 }
 ```
+
+Links the number to the caller. Rejected with HTTP 409 before the OTP is sent to the carrier if:
+
+- the number is linked to another account and still subscribed (`statusCode: "SUBSCRIBER_ID_IN_USE"`), or
+- the caller is linked to a different number that is still subscribed (`statusCode: "USER_ALREADY_SUBSCRIBED"`).
 
 #### Unsubscribe
 
@@ -353,6 +361,16 @@ Gets charging information for a subscriber.
   ]
 }
 ```
+
+## Number Linking
+
+The `masked-ids` Firestore collection links each number to one user:
+
+- `get-status`, `unsubscribe` and `get-charging-info` reject a number linked to another user with HTTP 403 and `statusCode: "SUBSCRIBER_ID_NOT_OWNED"`, or with `statusCode: "SUBSCRIBER_ID_NOT_FOUND"` if the number isn't linked at all.
+- A number or an account can be relinked once the carrier reports the old link unsubscribed (`subscriptionStatus: "UNREGISTERED"`, or an error with `statusCode: "E1951"`). Any other failed status check counts as still subscribed. Relinking an account to a new number removes its old link.
+- A link whose `userId` has been cleared, e.g. after deleting the account, never blocks a new one.
+
+Whitelisted test numbers (`ENABLE_WHITELIST`) go through the same linking rules; only the carrier calls are mocked (OTP `123456`). Their mocked status is always `REGISTERED`, so a test number can't be moved to another account.
 
 ## Device-Based Session Management System
 
