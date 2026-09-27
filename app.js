@@ -15,8 +15,8 @@ import authRoute from "./routes/authRoute.js";
 // Initialize Express application
 const app = express();
 
-// Trust proxy - this is important for getting real client IPs behind AWS ELB/ALB
-app.set("trust proxy", true);
+// Trust only the proxies in front of the API, so clients can't spoof their IP past the rate limits
+app.set("trust proxy", Number(process.env.TRUST_PROXY ?? 1));
 
 // CORS - restrict to allowed frontend origin(s), configured via env
 const allowedOrigins = (process.env.CORS_ORIGIN || "")
