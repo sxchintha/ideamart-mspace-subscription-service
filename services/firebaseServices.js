@@ -10,14 +10,19 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
-import serviceAccount from "../config/firebase.json" with { type: "json" };
+import { readFileSync } from "fs";
 import validateSubscriberId from "../utils/validateSubscriberId.js";
 import { StatusCode } from "../constants/statusCodes.js";
 
-// Initialize Firebase application with service account credentials
-initializeApp({
-  credential: cert(serviceAccount),
-});
+// Initialize Firebase with service account credentials, or against the emulators in tests
+if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+  initializeApp({ projectId: process.env.GCLOUD_PROJECT });
+} else {
+  const serviceAccount = JSON.parse(
+    readFileSync(new URL("../config/firebase.json", import.meta.url), "utf8")
+  );
+  initializeApp({ credential: cert(serviceAccount) });
+}
 
 // Get references to Firestore collection and Auth service
 const collectionRef = getFirestore().collection("masked-ids");

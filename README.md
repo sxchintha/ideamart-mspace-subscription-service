@@ -30,6 +30,7 @@ This is a Node.js Express API that provides authentication, subscription managem
 
 - Node.js (v18 or higher)
 - npm
+- Java 21+ (only for `npm test`, which runs the Firebase emulators)
 - Firebase project with authentication enabled
 
 ### Installation
@@ -408,6 +409,7 @@ If a user tries to access a protected route with an invalid device (HTTP 401):
 - `npm start` - Start the production server
 - `npm run dev` - Start the development server with nodemon
 - `npm run build` - No build step required (placeholder)
+- `npm test` - Run the HTTP tests against the Firebase Auth and Firestore emulators. Carrier calls are stubbed.
 
 ### Project Structure
 
@@ -420,6 +422,7 @@ If a user tries to access a protected route with an invalid device (HTTP 401):
 - `/constants` - Application constants and status codes
 - `/utils` - Utility functions
 - `/logs` - Application log files
+- `/tests` - HTTP tests run with Vitest and Supertest
 
 ## License
 
