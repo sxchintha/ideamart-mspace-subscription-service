@@ -40,7 +40,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(statusCode).send({
     apiStatus: "error",
     message: err.message,
-    statusCode: err.cause.statusCode || StatusCode.INTERNAL_SERVER_ERROR,
+    statusCode: err.cause?.statusCode || StatusCode.INTERNAL_SERVER_ERROR,
     // Only include stack trace in development environment
     stack: process.env.NODE_ENV === "development" ? err.stack : null,
   });
