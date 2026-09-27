@@ -156,11 +156,11 @@ Checks if the current device is valid for the authenticated user.
 }
 ```
 
-**Response (Invalid Device):**
+**Response (Invalid Device, HTTP 401):**
 
 ```json
 {
-  "apiStatus": "success",
+  "apiStatus": "error",
   "message": "Device is not the current registered device",
   "isCurrentDevice": false,
   "updatedAt": 1234567890,
@@ -170,7 +170,9 @@ Checks if the current device is valid for the authenticated user.
 
 ### Subscription Endpoints
 
-All subscription endpoints require authentication and valid device verification.
+All subscription endpoints require authentication. All of them except `get-status` and `get-charging-info` also require the device in `x-device-id` to be the user's current device.
+
+Responses put the carrier's fields at the top level next to `apiStatus`; nothing is nested under `data`. A carrier status code starting with `S` returns HTTP 200 with `"apiStatus": "success"`; anything else returns an error status with `"apiStatus": "error"` and the carrier's fields.
 
 #### Request OTP
 
@@ -200,9 +202,10 @@ Requests an OTP for subscription verification.
 ```json
 {
   "apiStatus": "success",
-  "data": {
-    "referenceNo": "reference-number-for-verification"
-  }
+  "referenceNo": "reference-number-for-verification",
+  "statusCode": "S1000",
+  "statusDetail": "Request was successfully processed.",
+  "version": "1.0"
 }
 ```
 
@@ -234,10 +237,11 @@ Verifies the OTP and completes the subscription process.
 ```json
 {
   "apiStatus": "success",
-  "data": {
-    "statusCode": "success-code",
-    "subscriberId": "masked-subscriber-id"
-  }
+  "statusCode": "S1000",
+  "subscriptionStatus": "REGISTERED",
+  "subscriberId": "tel:masked-subscriber-id",
+  "statusDetail": "Success",
+  "version": "1.0"
 }
 ```
 
@@ -267,9 +271,10 @@ Unsubscribes a user from the service.
 ```json
 {
   "apiStatus": "success",
-  "data": {
-    "statusCode": "success-code"
-  }
+  "statusCode": "S1000",
+  "subscriptionStatus": "UNREGISTERED",
+  "statusDetail": "Request was successfully processed.",
+  "version": "1.0"
 }
 ```
 
@@ -299,10 +304,10 @@ Gets the current subscription status for a user.
 ```json
 {
   "apiStatus": "success",
-  "data": {
-    "statusCode": "status-code",
-    "subscriptionStatus": "active/inactive"
-  }
+  "statusCode": "S1000",
+  "subscriptionStatus": "REGISTERED",
+  "statusDetail": "Request was successfully processed.",
+  "version": "1.0"
 }
 ```
 
@@ -332,11 +337,19 @@ Gets charging information for a subscriber.
 ```json
 {
   "apiStatus": "success",
-  "data": {
-    "chargingInfo": {
-      // Charging details
+  "statusCode": "S1000",
+  "statusDetail": "Success.",
+  "version": "1.0",
+  "destinationResponses": [
+    {
+      "subscriberId": "tel:masked-subscriber-id",
+      "subscriptionStatus": "REGISTERED",
+      "lastChargedDate": "2020-01-23 22:03:22",
+      "lastChargedAmount": "30.00 LKR",
+      "numberType": "postpaid",
+      "statusCode": "S1000"
     }
-  }
+  ]
 }
 ```
 
@@ -378,7 +391,7 @@ If a device ID is missing:
 }
 ```
 
-If a user tries to access a protected route with an invalid device:
+If a user tries to access a protected route with an invalid device (HTTP 401):
 
 ```json
 {
